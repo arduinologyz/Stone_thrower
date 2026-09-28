@@ -1,0 +1,672 @@
+/*made by @FedorKkudrin*/
+
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Бросаем камни</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pri:#4355B9; --on-pri:#FFFFFF; --pri-c:#DEE0FF; --on-pri-c:#000C4E;
+    --sec:#5B5D72; --sec-c:#E0E1F9; --on-sec-c:#181A2C;
+    --surf:#FCF8FF; --surf-1:#F4EFFA; --surf-2:#EEE9F5; --on-surf:#1B1B21;
+    --surf-var:#E4E1EC; --on-surf-var:#47464F; --outline:#787680; --err:#BA1A1A;
+    --radius-s:12px; --radius-m:16px;
+    --sans:'Roboto',system-ui,sans-serif; --mono:'Roboto Mono',monospace;
+    --elev1:0 1px 2px rgba(0,0,0,.3),0 1px 3px 1px rgba(0,0,0,.12);
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --pri:#BAC3FF; --on-pri:#131447; --pri-c:#2B3479; --on-pri-c:#DEE0FF;
+      --sec:#C4C5DD; --sec-c:#434659; --on-sec-c:#E0E1F9;
+      --surf:#131318; --surf-1:#1A1A22; --surf-2:#201F2A; --on-surf:#E5E1E9;
+      --surf-var:#47464F; --on-surf-var:#C8C5D0; --outline:#918F9A;
+    }
+  }
+  :root[data-theme="dark"]{
+    --pri:#BAC3FF; --on-pri:#131447; --pri-c:#2B3479; --on-pri-c:#DEE0FF;
+    --sec:#C4C5DD; --sec-c:#434659; --on-sec-c:#E0E1F9;
+    --surf:#131318; --surf-1:#1A1A22; --surf-2:#201F2A; --on-surf:#E5E1E9;
+    --surf-var:#47464F; --on-surf-var:#C8C5D0; --outline:#918F9A;
+  }
+  *{box-sizing:border-box; min-width:0}
+  html,body{height:100%}
+  body{margin:0;background:var(--surf);color:var(--on-surf);font-family:var(--sans);-webkit-tap-highlight-color:transparent}
+  header{display:flex;align-items:center;gap:16px;padding:14px 20px;padding-top:calc(14px + env(safe-area-inset-top,0px));
+    background:var(--surf-1);flex-wrap:wrap;position:sticky;top:0;z-index:5}
+  header h1{font-size:20px;margin:0;font-weight:500}
+  nav{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+  nav button{background:var(--surf-2);border:none;color:var(--on-surf-var);padding:8px 18px;
+    border-radius:100px;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+  nav button.active{color:var(--on-sec-c);background:var(--sec-c)}
+  nav button:disabled{opacity:.4;cursor:not-allowed}
+
+  /* ---- гибкая вёрстка: flex + wrap вместо жёсткого grid ---- */
+  main{display:flex;flex-wrap:wrap;gap:16px;padding:16px;align-items:flex-start}
+  .controls, .results{flex:1 1 300px}
+  .stage{flex:2 1 420px;min-height:min(55vh,460px)}
+  @media (max-width:720px){
+    .controls,.results,.stage{flex-basis:100%}
+    .stage{order:-1}
+  }
+
+  .card{background:var(--surf-1);border-radius:var(--radius-m);padding:16px;box-shadow:var(--elev1)}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--pri);font-weight:700;margin:0 0 12px}
+  .field{margin-bottom:12px;flex:1 1 110px}
+  label{display:block;font-size:12px;color:var(--on-surf-var);margin-bottom:4px}
+  input[type=number]{width:100%;background:var(--surf);border:1px solid var(--outline);color:var(--on-surf);
+    padding:11px 12px;border-radius:var(--radius-s);font-family:var(--mono);font-size:15px}
+  input[type=number]:focus{outline:2px solid var(--pri);border-color:var(--pri)}
+  input[type=range]{width:100%;accent-color:var(--pri)}
+  .row2{display:flex;flex-wrap:wrap;gap:10px}
+/*made by @FedorKkudrin*/
+
+  .stone{background:var(--surf-2);border-radius:var(--radius-m);padding:12px;margin-bottom:10px;
+    border-left:5px solid var(--stone-color,var(--pri))}
+  .stone-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .dot{width:14px;height:14px;flex:0 0 14px;border-radius:50%;background:var(--stone-color,var(--pri));
+    box-shadow:inset -2px -2px 3px rgba(0,0,0,.25),inset 2px 2px 3px rgba(255,255,255,.35)}
+  .stone-head span:not(.dot){font-size:13px;font-weight:500;flex:1}
+  .icon-btn{background:none;border:none;color:var(--on-surf-var);width:32px;height:32px;border-radius:50%;
+    cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .icon-btn:hover{background:var(--surf-var)}
+  .icon-btn:disabled{opacity:.3;cursor:not-allowed}
+
+  .btn-add{width:100%;background:var(--pri-c);color:var(--on-pri-c);border:none;padding:12px;
+    border-radius:var(--radius-s);font-family:var(--sans);font-weight:500;font-size:14px;cursor:pointer;margin-top:4px}
+
+  .stage{background:var(--surf-1);border-radius:var(--radius-m);box-shadow:var(--elev1);
+    display:flex;flex-direction:column;overflow:hidden;position:relative}
+  .canvas-wrap{flex:1;position:relative;min-height:0}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  .playback{display:flex;gap:10px;align-items:center;padding:10px 16px;background:var(--surf-2);flex-wrap:wrap}
+  .playback button{background:var(--pri);color:var(--on-pri);border:none;width:40px;height:40px;
+    border-radius:50%;font-size:16px;cursor:pointer;flex-shrink:0}
+  .playback button.outline{background:none;color:var(--on-surf-var);border:1px solid var(--outline)}
+  .speed-label{font-family:var(--mono);font-size:12px;color:var(--on-surf-var);width:36px;text-align:right}
+
+  .result-card{border-radius:var(--radius-m);padding:12px 14px;margin-bottom:10px;background:var(--surf-2);
+    border-left:5px solid var(--stone-color,var(--pri))}
+  .result-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12.5px;gap:8px}
+  .result-row .v{font-family:var(--mono);color:var(--pri);white-space:nowrap}
+  .warn{font-size:12px;color:var(--err);margin-top:8px;line-height:1.5}
+  .stub{padding:60px 24px;text-align:center;color:var(--on-surf-var);font-size:14px;line-height:1.7}
+  .hint{font-size:12px;color:var(--on-surf-var);margin:-2px 0 12px;line-height:1.4}
+  select{width:100%;background:var(--surf);border:1px solid var(--outline);color:var(--on-surf);
+    padding:11px 12px;border-radius:var(--radius-s);font-family:var(--sans);font-size:14px}
+  label.chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--on-surf);margin:6px 0}
+  .chip{background:var(--sec-c);color:var(--on-sec-c);border:none;border-radius:100px;padding:8px 14px;
+    margin:8px 6px 0 0;font-family:var(--mono);font-size:12px;cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <h1>Бросаемся камнями</h1>
+  <nav id="tabs"></nav>
+</header>
+<main>
+  <aside class="controls" id="controls"></aside>
+  <section class="stage">
+    <div class="canvas-wrap"><canvas id="canvas"></canvas></div>
+    <div class="playback" id="playback"></div>
+  </section>
+  <aside class="results" id="results"></aside>
+</main>
+
+<script>
+/* ============================================================
+   ЯДРО: реестр симуляторов + общие утилиты сцены.
+   Новый модуль добавляется через registerSimulator({...}),
+   ядро (вкладки/canvas/плеер/масштабирование) переиспользуется.
+   ============================================================ */
+const SIMULATORS = [];
+function registerSimulator(sim){ SIMULATORS.push(sim); }
+const COLORS = ['#FFB300','#26A69A','#EF5350','#7E57C2','#66BB6A','#FF7043','#5C6BC0','#8D6E63'];
+function cssVar(name){ return getComputedStyle(document.body).getPropertyValue(name); }
+
+const els = {
+  tabs: document.getElementById('tabs'),
+  controls: document.getElementById('controls'),
+  results: document.getElementById('results'),
+  playback: document.getElementById('playback'),
+  canvas: document.getElementById('canvas'),
+};
+const ctx = els.canvas.getContext('2d');
+let activeHandle = null;
+
+function resizeCanvas(){
+  const r = els.canvas.getBoundingClientRect();
+  els.canvas.width = Math.max(1, Math.round(r.width * devicePixelRatio));
+  els.canvas.height = Math.max(1, Math.round(r.height * devicePixelRatio));
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  if(activeHandle && activeHandle.onResize) activeHandle.onResize();
+}
+window.addEventListener('resize', resizeCanvas);
+// ResizeObserver надёжнее window.resize: ловит любые изменения
+// раскладки (flex-контейнеров, поворот экрана, появление скролла)
+new ResizeObserver(resizeCanvas).observe(document.querySelector('.stage'));
+
+/* Преобразование "мировых" координат (в т.ч. отрицательных) в пиксели.
+   pointSets — массив массивов точек [[x,y],...], используется для
+   автоматического подбора границ сцены. Общая утилита для всех симуляторов. */
+function sceneTransform(canvas, pointSets, pad={l:44,r:20,t:22,b:22}, equal=true){
+  let xMin=0,xMax=0,yMin=0,yMax=0;
+  pointSets.flat().forEach(([x,y])=>{
+    xMin=Math.min(xMin,x); xMax=Math.max(xMax,x);
+    yMin=Math.min(yMin,y); yMax=Math.max(yMax,y);
+  });
+  if(xMax-xMin<1e-6) xMax=xMin+1;
+  if(yMax-yMin<1e-6) yMax=yMin+1;
+  const r = canvas.getBoundingClientRect();
+  const w=r.width-pad.l-pad.r, h=r.height-pad.t-pad.b;
+  let scaleX=w/(xMax-xMin), scaleY=h/(yMax-yMin), offX=pad.l, offY=pad.t;
+  if(equal){   // одинаковый масштаб по осям: углы, наклоны, стены и векторы скорости выглядят как в реальности
+    const sc=Math.min(scaleX,scaleY);
+    offX += (w-(xMax-xMin)*sc)/2; offY += (h-(yMax-yMin)*sc)/2;   // центрируем сцену
+    scaleX = scaleY = sc;
+  }
+  return { toPx:(x,y)=>[offX+(x-xMin)*scaleX, offY+(yMax-y)*scaleY], xMin,xMax,yMin,yMax };
+}
+function drawAxes(ctx, tr){
+  ctx.strokeStyle = cssVar('--outline'); ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath();
+  if(tr.yMin<=0 && tr.yMax>=0){ const [x1,y]=tr.toPx(tr.xMin,0), [x2]=tr.toPx(tr.xMax,0); ctx.moveTo(x1,y); ctx.lineTo(x2,y); }
+  if(tr.xMin<=0 && tr.xMax>=0){ const [x,y1]=tr.toPx(0,tr.yMin), [,y2]=tr.toPx(0,tr.yMax); ctx.moveTo(x,y1); ctx.lineTo(x,y2); }
+  ctx.stroke(); ctx.setLineDash([]);
+}
+
+function activate(sim){
+  if(activeHandle && activeHandle.destroy) activeHandle.destroy();
+  els.controls.innerHTML=''; els.results.innerHTML=''; els.playback.innerHTML='';
+  [...els.tabs.children].forEach(b => b.classList.toggle('active', b.dataset.id === sim.id));
+  activeHandle = sim.mount({ controls: els.controls, results: els.results, playback: els.playback, canvas: els.canvas, ctx });
+  resizeCanvas();
+}
+function initApp(){
+  SIMULATORS.forEach(sim=>{
+    const b=document.createElement('button'); b.textContent=sim.title; b.dataset.id=sim.id;
+    if(sim.disabled) b.disabled=true; else b.onclick=()=>activate(sim);
+    els.tabs.appendChild(b);
+  });
+  activate(SIMULATORS.find(s=>!s.disabled));
+}
+
+/* Универсальный плеер: один rAF-цикл двигает общее время state.t.
+   Есть кнопки play/reset, скорость и ползунок времени (scrub). */
+function makePlayer(playback, getMaxT, onTick){
+  const state = { t:0, speed:1, playing:false, lastTs:null };
+  playback.innerHTML = `
+    <button class="outline" id="btn-reset">⟲</button>
+    <button id="btn-play">▶</button>
+    <input type="range" id="speed" min="0.25" max="4" step="0.25" value="1" style="flex:1 1 90px;width:auto">
+    <span class="speed-label" id="speed-label">×1</span>
+    <input type="range" id="scrub" min="0" max="1000" value="0" style="flex-basis:100%" title="Время">`;
+  const btnPlay=playback.querySelector('#btn-play'), btnReset=playback.querySelector('#btn-reset'),
+        speedEl=playback.querySelector('#speed'), speedLabel=playback.querySelector('#speed-label'),
+        scrub=playback.querySelector('#scrub');
+  function show(t){ onTick(t); const m=getMaxT(); scrub.value = m>0 ? t/m*1000 : 0; }
+  speedEl.oninput = () => { state.speed=parseFloat(speedEl.value); speedLabel.textContent='×'+state.speed; };
+  scrub.oninput = () => { pause(); state.t = scrub.value/1000*getMaxT(); show(state.t); };
+  function loop(ts){
+    if(!state.playing) return;
+    if(state.lastTs===null) state.lastTs=ts;
+    state.t += (ts-state.lastTs)/1000*state.speed; state.lastTs=ts;
+    const mt=getMaxT();
+    if(state.t>=mt){ state.t=mt; pause(); }
+    show(state.t);
+    if(state.playing) requestAnimationFrame(loop);
+  }
+  function play(){ if(state.t>=getMaxT()) state.t=0; state.playing=true; state.lastTs=null; btnPlay.textContent='⏸'; requestAnimationFrame(loop); }
+  function pause(){ state.playing=false; btnPlay.textContent='▶'; }
+  btnPlay.onclick = () => state.playing ? pause() : play();
+  btnReset.onclick = () => { pause(); state.t=0; show(0); };
+  return { state, pause,
+    reset(){ state.t=0; show(0); },
+    seek(t){ pause(); state.t=Math.max(0,Math.min(t,getMaxT())); show(state.t); } };
+}
+
+/* ============================================================
+   СИМУЛЯТОР 1: Бросок под углом — численная модель.
+   Умеет: сопротивление воздуха, упругие отскоки, стены под углом,
+   наклон поверхности, векторы скорости, расстояние между камнями,
+   поиск времени по углу между векторами скоростей.
+   ============================================================ */
+const DT = 0.005;      // шаг интегрирования, с
+const T_MAX = 120;     // предел времени моделирования, с
+const NUDGE = 1e-6;    // микро-сдвиг от поверхности после отскока
+
+function drawArrow(ctx, x, y, dx, dy, color){
+  if(Math.hypot(dx,dy) < 2) return;
+  ctx.strokeStyle = ctx.fillStyle = color; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+dx,y+dy); ctx.stroke();
+  const a = Math.atan2(dy,dx), h = 7;
+  ctx.beginPath(); ctx.moveTo(x+dx, y+dy);
+  ctx.lineTo(x+dx-h*Math.cos(a-0.4), y+dy-h*Math.sin(a-0.4));
+  ctx.lineTo(x+dx-h*Math.cos(a+0.4), y+dy-h*Math.sin(a+0.4));
+  ctx.fill();
+}
+
+registerSimulator({
+  id:'projectile', title:'Бросок под углом',
+  mount({controls, results, playback, canvas, ctx}){
+    const env = { g:10, incline:0, rho:0, cd:0, vectors:true };
+    const newStone = () => ({ v0:20, angle:45, h0:0, mass:0.5, area:0, bounces:0, k:0.7 });
+    const newWall  = () => ({ x:30, angle:90, len:20 });
+    let stones = [newStone()], walls = [], outs = [];
+    const pair = { a:0, ref:'s1' };   // ref: 's<i>' — камень, 'g' — поверхность, 'w<i>' — стена
+
+    /* ---------- ФИЗИКА ---------- */
+    // Возвращает выборку движения S (время, позиция, скорость) и итоги.
+    function simulate(s){
+      const b = env.incline*Math.PI/180, tanB = Math.tan(b), ground = [-Math.sin(b), Math.cos(b)];
+      const a0 = s.angle*Math.PI/180, k = Math.min(1, Math.max(0, s.k)), maxBounces = Math.floor(s.bounces);
+      let t=0, x=0, y=s.h0, vx=s.v0*Math.cos(a0), vy=s.v0*Math.sin(a0);
+      const S = { t:[t], x:[x], y:[y], vx:[vx], vy:[vy] };
+      const push = () => { S.t.push(t); S.x.push(x); S.y.push(y); S.vx.push(vx); S.vy.push(vy); };
+      // квадратичное сопротивление: a = -(ρ·Cd·A / 2m)·|v|·v
+      const kd = 0.5*env.rho*env.cd*s.area/Math.max(s.mass,1e-6);
+      const acc = (u,w) => { const v=Math.hypot(u,w); return [-kd*v*u, -env.g-kd*v*w]; };
+      const above = (px,py) => py - px*tanB;          // высота над поверхностью
+      let done = !(above(x,y) >= 0), contacts=0, reflections=0, firstImpact=null, maxY=y, vMax=Math.hypot(vx,vy);
+
+      while(!done && t < T_MAX){
+        const [ax,ay] = acc(vx,vy);
+        const nx = x+vx*DT+0.5*ax*DT*DT, ny = y+vy*DT+0.5*ay*DT*DT;
+        const [ax2,ay2] = acc(vx+ax*DT, vy+ay*DT);
+        const nvx = vx+0.5*(ax+ax2)*DT, nvy = vy+0.5*(ay+ay2)*DT;
+
+        // ближайшее столкновение на шаге: поверхность или стена
+        let hit = null;
+        const d0 = above(x,y), d1 = above(nx,ny);
+        if(d1 < 0) hit = { f:d0/(d0-d1), n:ground.slice() };
+        for(const w of walls){
+          const wa=w.angle*Math.PI/180, Dx=Math.cos(wa), Dy=Math.sin(wa);
+          const rx=nx-x, ry=ny-y, den=rx*Dy-ry*Dx;
+          if(Math.abs(den) < 1e-12) continue;
+          const qx=w.x-x, qy=w.x*tanB-y;
+          const f=(qx*Dy-qy*Dx)/den, u=(qx*ry-qy*rx)/den;
+          if(f>1e-9 && f<=1 && u>=0 && u<=w.len && (!hit || f<hit.f)) hit = { f, n:[-Dy,Dx] };
+        }
+        if(!hit){ t+=DT; x=nx; y=ny; vx=nvx; vy=nvy; maxY=Math.max(maxY,y); vMax=Math.max(vMax,Math.hypot(vx,vy)); push(); continue; }
+
+        // контакт: переходим в точку удара
+        const f = hit.f;
+        t += f*DT; x += (nx-x)*f; y += (ny-y)*f; vx += (nvx-vx)*f; vy += (nvy-vy)*f; push();
+        let n = hit.n, vn = vx*n[0]+vy*n[1];
+        if(vn > 0){ n = [-n[0],-n[1]]; vn = -vn; }      // нормаль смотрит навстречу скорости
+        if(firstImpact === null) firstImpact = Math.hypot(vx,vy);
+        contacts++;
+        if(contacts > maxBounces){ vx=0; vy=0; push(); done=true; break; }   // остановился
+        vx -= (1+k)*vn*n[0]; vy -= (1+k)*vn*n[1]; reflections++;             // упругий отскок
+        x += NUDGE*n[0]; y += NUDGE*n[1]; push();
+        if(Math.hypot(vx,vy) < 0.15){ vx=0; vy=0; push(); done=true; }
+      }
+      return { S, T:t, valid: above(0,s.h0)>=0 && t>0, xEnd:x, maxY, firstImpact, reflections, vMax };
+    }
+
+    // Состояние камня в момент времени t (бинарный поиск + интерполяция)
+    function stateAt(o, t){
+      const S=o.S, T=S.t, last=T.length-1;
+      if(t >= T[last]) return { x:S.x[last], y:S.y[last], vx:S.vx[last], vy:S.vy[last] };
+      let lo=0, hi=last;
+      while(hi-lo > 1){ const m=(lo+hi)>>1; if(T[m] <= t) lo=m; else hi=m; }
+      const dt=T[hi]-T[lo], f = dt>0 ? (t-T[lo])/dt : 0, mix = a => a[lo]+(a[hi]-a[lo])*f;
+      return { x:mix(S.x), y:mix(S.y), vx:mix(S.vx), vy:mix(S.vy) };
+    }
+
+    function angleBetween(A, B){
+      const la=Math.hypot(A.vx,A.vy), lb=Math.hypot(B.vx,B.vy);
+      if(la<1e-9 || lb<1e-9) return NaN;
+      return Math.acos(Math.max(-1, Math.min(1, (A.vx*B.vx+A.vy*B.vy)/(la*lb))))*180/Math.PI;
+    }
+
+    // ---- углы: скорость ↔ скорость, скорость ↔ поверхность/стена ----
+    const refStone = ref => ref[0]==='s' ? +ref.slice(1) : null;          // 's1' → индекс камня, иначе null
+    const refName = ref => ref==='g' ? 'поверхность' : ref[0]==='w' ? 'стена '+(+ref.slice(1)+1) : 'камень '+(+ref.slice(1)+1);
+    function lineAngleOf(ref){                                            // направление поверхности/стены, °
+      if(ref==='g') return env.incline;
+      if(ref[0]==='w' && walls[+ref.slice(1)]) return walls[+ref.slice(1)].angle;
+      return null;
+    }
+    function angleToLine(A, deg){                                         // острый угол (0…90°) между скоростью и линией
+      const v=Math.hypot(A.vx,A.vy); if(v<1e-9) return NaN;
+      const d=deg*Math.PI/180, c=Math.abs(A.vx*Math.cos(d)+A.vy*Math.sin(d))/v;
+      return Math.acos(Math.min(1,c))*180/Math.PI;
+    }
+
+    // Все моменты, когда угол между скоростью камня A и объектом ref (камень / поверхность / стена) равен target (°)
+    // Ищем нули УГЛА СО ЗНАКОМ: обычный угол ≥ 0 и при 0° (параллельно) или 180° (противоположно)
+    // лишь касается нуля, не меняя знак, поэтому такие корни раньше не находились.
+    function findTimes(ia, ref, target){
+      const oa=outs[ia], rs=refStone(ref), ob = rs===null ? null : outs[rs], lineDeg = lineAngleOf(ref);
+      if(!oa || !oa.valid) return [];
+      if(rs!==null && (rs===ia || !ob || !ob.valid)) return [];
+      if(rs===null && lineDeg===null) return [];
+      const tEnd = ob ? Math.min(oa.T,ob.T) : oa.T, N=2000;
+      const R2D = 180/Math.PI, EPS=1e-9;
+      const wrap = (x, per) => { x = ((x + per/2) % per + per) % per - per/2; return (x <= -per/2+1e-12) ? per/2 : x; };
+      // угол со знаком: скорость↔скорость ∈ (−180°,180°], скорость↔линия ∈ (−90°,90°]
+      const signed = t => {
+        const A=stateAt(oa,t);
+        if(Math.hypot(A.vx,A.vy)<EPS) return NaN;
+        if(ob){ const B=stateAt(ob,t); if(Math.hypot(B.vx,B.vy)<EPS) return NaN;
+          return Math.atan2(A.vx*B.vy-A.vy*B.vx, A.vx*B.vx+A.vy*B.vy)*R2D; }
+        return wrap(Math.atan2(A.vy,A.vx)*R2D - lineDeg, 180);
+      };
+      const per = ob ? 360 : 180, maxA = per/2;
+      const tg = Math.min(Math.max(Math.abs(target),0), maxA);
+      const roots = [];
+      const solve = shift => {
+        const f = t => { const s=signed(t); if(!isFinite(s)) return NaN; const v=wrap(s - shift, per); return Math.abs(v)<1e-6 ? 0 : v; };
+        let pt=0, pf=f(0);
+        if(pf===0) roots.push(0);
+        for(let i=1; i<=N; i++){
+          const t=tEnd*i/N, F=f(t);
+          if(pf===0 && F===0){ pt=t; pf=F; continue; }                         // угол постоянно равен искомому — один корень, а не сотни
+          if(isFinite(pf) && isFinite(F) && pf*F<=0 && Math.abs(F-pf)<30){   // <30°: пропускаем скачки на отскоках
+            let lo=pt, hi=t, flo=pf;
+            for(let j=0;j<40;j++){ const m=(lo+hi)/2, fm=f(m); if(fm*flo<=0) hi=m; else { lo=m; flo=fm; } }
+            roots.push((lo+hi)/2);
+          }
+          pt=t; pf=F;
+        }
+      };
+      solve(tg); if(tg>1e-9 && tg<maxA-1e-9) solve(-tg);                       // +θ и −θ
+      roots.sort((a,b)=>a-b);
+      return roots.filter((r,i)=>!i || r-roots[i-1]>1e-3);
+    }
+
+    /* ---------- ПАНЕЛЬ УПРАВЛЕНИЯ ---------- */
+    controls.innerHTML = `
+      <div class="card" style="margin-bottom:16px"><h2>Среда</h2>
+        <div class="row2">
+          <div class="field"><label>g (м/с²)</label><input type="number" id="p-g" value="${env.g}" step="0.1"></div>
+          <div class="field"><label>Наклон поверхности (°)</label><input type="number" id="p-incline" value="${env.incline}" step="1" min="-80" max="80"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Плотность воздуха ρ (кг/м³, 0 — вакуум)</label><input type="number" id="p-rho" value="${env.rho}" step="0.1" min="0"></div>
+          <div class="field"><label>Коэф. сопротивления Cd</label><input type="number" id="p-cd" value="${env.cd}" step="0.05" min="0"></div>
+        </div>
+        <div class="warn" id="warn"></div></div>
+      <div class="card" style="margin-bottom:16px"><h2>Стены</h2><div id="wall-list"></div>
+        <button class="btn-add" id="btn-add-wall">+ Добавить стену</button></div>
+      <div class="card" style="margin-bottom:16px"><h2>Камни</h2><div id="stone-list"></div>
+        <button class="btn-add" id="btn-add">+ Добавить камень</button></div>
+      <div class="card"><h2>Момент времени</h2>
+        <div class="field"><label>t (с)</label><input type="number" id="p-t" value="0" step="0.1" min="0"></div>
+        <label class="chk"><input type="checkbox" id="p-vec" checked> Показывать векторы скорости</label>
+        <h2 style="margin-top:16px">Угол → время</h2>
+        <div class="row2">
+          <div class="field"><label>Камень A</label><select id="sel-a"></select></div>
+          <div class="field"><label>Относительно</label><select id="sel-b"></select></div>
+        </div>
+        <div class="hint">Камень, поверхность или стена. С поверхностью и стеной считается острый угол между скоростью и линией (0…90°).</div>
+        <div class="field"><label>Искомый угол (°)</label><input type="number" id="ang-target" value="90" step="1"></div>
+        <button class="btn-add" id="btn-find">Найти время</button><div id="find-out"></div></div>`;
+    const $ = q => controls.querySelector(q);
+    const inG=$('#p-g'), inIncline=$('#p-incline'), inRho=$('#p-rho'), inCd=$('#p-cd'), chkVec=$('#p-vec'),
+          warn=$('#warn'), wallList=$('#wall-list'), stoneList=$('#stone-list'), inT=$('#p-t'),
+          selA=$('#sel-a'), selB=$('#sel-b'), inAng=$('#ang-target'), findOut=$('#find-out');
+/*made by @FedorKkudrin*/
+
+    inG.oninput = () => { env.g = parseFloat(inG.value)||10; recompute(); };
+    inIncline.oninput = () => { env.incline = Math.max(-80,Math.min(80,parseFloat(inIncline.value)||0)); recompute(); };
+    inRho.oninput = () => { env.rho = Math.max(0,parseFloat(inRho.value)||0); recompute(); };
+    inCd.oninput = () => { env.cd = Math.max(0,parseFloat(inCd.value)||0); recompute(); };
+    chkVec.onchange = () => { env.vectors = chkVec.checked; drawScene(player.state.t); };
+    inT.oninput = () => player.seek(Math.max(0, parseFloat(inT.value)||0));
+    selA.onchange = () => { pair.a=+selA.value; updateAtTime(player.state.t); drawScene(player.state.t); };
+    selB.onchange = () => { pair.ref=selB.value; updateAtTime(player.state.t); drawScene(player.state.t); };
+    $('#btn-add').onclick = () => { stones.push(newStone()); renderStones(); recompute(); };
+    $('#btn-add-wall').onclick = () => { walls.push(newWall()); renderWalls(); recompute(); };
+
+    const fld = (i,k,label,v,step,extra='') =>
+      `<div class="field"><label>${label}</label><input type="number" data-i="${i}" data-k="${k}" value="${v}" step="${step}" ${extra}></div>`;
+    function bindList(root, list, rerender){
+      root.querySelectorAll('input[data-k]').forEach(inp => {
+        inp.oninput = () => { list[+inp.dataset.i][inp.dataset.k] = parseFloat(inp.value)||0; recompute(); };
+      });
+      root.querySelectorAll('[data-remove]').forEach(b => {
+        b.onclick = () => { list.splice(+b.dataset.remove,1); rerender(); recompute(); };
+      });
+    }
+
+    function renderStones(){
+      stoneList.innerHTML = stones.map((s,i)=>`
+        <div class="stone" style="--stone-color:${COLORS[i%COLORS.length]}">
+          <div class="stone-head"><span class="dot"></span><span>Камень ${i+1}</span>
+            <button class="icon-btn" data-remove="${i}" ${stones.length<=1?'disabled':''}>✕</button></div>
+          <div class="row2">${fld(i,'v0','v₀ (м/с)',s.v0,0.5,'min="0"')}${fld(i,'angle','Угол θ (°, ±180)',s.angle,1,'min="-180" max="180"')}${fld(i,'h0','Высота h₀ (м)',s.h0,0.5)}</div>
+          <div class="row2">${fld(i,'mass','Масса (кг)',s.mass,0.1,'min="0.001"')}${fld(i,'area','Сечение A (м²)',s.area,0.001,'min="0"')}</div>
+          <div class="row2">${fld(i,'bounces','Отскоков (макс.)',s.bounces,1,'min="0"')}${fld(i,'k','Упругость k (0…1)',s.k,0.05,'min="0" max="1"')}</div>
+        </div>`).join('');
+      bindList(stoneList, stones, renderStones);
+      fillSelects();
+    }
+    function fillSelects(){
+      selA.innerHTML = stones.map((_,i)=>`<option value="${i}">Камень ${i+1}</option>`).join('');
+      pair.a = Math.min(pair.a, stones.length-1); selA.value = pair.a;
+      const refs = [...stones.map((_,i)=>['s'+i,'Камень '+(i+1)]), ['g','Поверхность'], ...walls.map((_,i)=>['w'+i,'Стена '+(i+1)])];
+      selB.innerHTML = refs.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+      if(!refs.some(r=>r[0]===pair.ref)) pair.ref = (refs.find(r=>r[0]!=='s'+pair.a) || refs[0])[0];
+      selB.value = pair.ref;
+    }
+    function renderWalls(){
+      wallList.innerHTML = walls.map((w,i)=>`
+        <div class="stone" style="--stone-color:var(--outline)">
+          <div class="stone-head"><span class="dot"></span><span>Стена ${i+1}</span>
+            <button class="icon-btn" data-remove="${i}">✕</button></div>
+          <div class="row2">${fld(i,'x','До стены (м)',w.x,1)}${fld(i,'angle','Угол стены (°)',w.angle,5)}${fld(i,'len','Длина (м)',w.len,1,'min="0"')}</div>
+        </div>`).join('') || '<div class="stub" style="padding:12px">Стен нет</div>';
+      bindList(wallList, walls, renderWalls);
+      fillSelects();
+    }
+    renderStones(); renderWalls();
+
+    $('#btn-find').onclick = () => {
+      const target = parseFloat(inAng.value)||0, ts = findTimes(pair.a, pair.ref, target), sb = refStone(pair.ref);
+      findOut.innerHTML = ts.length ? ts.map(t => {
+        const A = stateAt(outs[pair.a],t);
+        const info = sb!==null ? 'd = '+Math.hypot(A.x-stateAt(outs[sb],t).x, A.y-stateAt(outs[sb],t).y).toFixed(2)+' м'
+                               : '(x; y) = ('+A.x.toFixed(1)+'; '+A.y.toFixed(1)+')';
+        return `<button class="chip" data-t="${t}">t = ${t.toFixed(3)} с · ${info}</button>`;
+      }).join('') : '<div class="warn">Такого угла нет: выбраны одинаковые камни, объект недоступен или камень уже остановился.</div>';
+      findOut.querySelectorAll('.chip').forEach(b => b.onclick = () => player.seek(parseFloat(b.dataset.t)));
+    };
+
+    /* ---------- РЕЗУЛЬТАТЫ ---------- */
+    const row = (l,v) => `<div class="result-row"><span>${l}</span><span class="v">${v}</span></div>`;
+    function recompute(){
+      outs = stones.map(simulate);
+      warn.textContent = outs.some(o=>!o.valid) ? 'У некоторых камней нет движения: старт ниже поверхности или мгновенная остановка — проверьте h₀, наклон, число отскоков.' : '';
+      results.innerHTML = '<div id="at-time"></div>' + stones.map((s,i)=>{ const o=outs[i]; if(!o.valid) return '';
+        return `<div class="result-card" style="--stone-color:${COLORS[i%COLORS.length]}">
+          <div style="font-size:13px;font-weight:500;margin-bottom:6px">Камень ${i+1}</div>
+          ${row('Время движения', o.T.toFixed(2)+' с')}${row('Дальность (x)', o.xEnd.toFixed(2)+' м')}
+          ${row('Макс. высота', o.maxY.toFixed(2)+' м')}${row('Отскоков', o.reflections)}
+          ${row('Скорость 1-го удара', o.firstImpact===null ? '—' : o.firstImpact.toFixed(2)+' м/с')}</div>`; }).join('');
+      player.reset();
+    }
+/*made by @FedorKkudrin*/
+
+    function updateAtTime(t){
+      const box = results.querySelector('#at-time'); if(!box) return;
+      if(document.activeElement !== inT) inT.value = t.toFixed(3);
+      const st = outs.map(o => o.valid ? stateAt(o,t) : null);
+      let html = `<div class="result-card" style="--stone-color:var(--pri)"><div style="font-size:13px;font-weight:500;margin-bottom:6px">Момент t = ${t.toFixed(2)} с</div>`;
+      st.forEach((s,i) => { if(!s) return;
+        html += row(`Камень ${i+1}: |v|`, Math.hypot(s.vx,s.vy).toFixed(2)+' м/с') + row('&nbsp; (vx; vy)', s.vx.toFixed(2)+'; '+s.vy.toFixed(2))
+              + row('&nbsp; направление', (Math.atan2(s.vy,s.vx)*180/Math.PI).toFixed(1)+'°'); });
+      const A=st[pair.a], sb=refStone(pair.ref);
+      if(A){
+        if(sb!==null){
+          const B=st[sb];
+          if(B && sb!==pair.a){
+            const ang=angleBetween(A,B);
+            html += row('Расстояние A–B', Math.hypot(A.x-B.x,A.y-B.y).toFixed(2)+' м') + row('Угол между v_A и v_B', isNaN(ang)?'—':ang.toFixed(1)+'°');
+          }
+        } else {
+          const deg=lineAngleOf(pair.ref);
+          if(deg!==null){ const ang=angleToLine(A,deg); html += row('Угол v_A и '+refName(pair.ref), isNaN(ang)?'—':ang.toFixed(1)+'°'); }
+        }
+      }
+      box.innerHTML = html + '</div>';
+    }
+
+    /* ---------- ОТРИСОВКА ---------- */
+    function thin(S){ const step=Math.max(1,Math.floor(S.t.length/500)), pts=[];
+      for(let i=0;i<S.t.length;i+=step) pts.push([S.x[i],S.y[i]]);
+      pts.push([S.x[S.t.length-1], S.y[S.t.length-1]]); return pts; }
+
+    function drawScene(t){
+      const ids = outs.map((o,i)=>o.valid?i:-1).filter(i=>i>=0);
+      const sets = ids.map(i=>thin(outs[i].S)), tanB = Math.tan(env.incline*Math.PI/180);
+      const wallPts = walls.map(w=>{ const a=w.angle*Math.PI/180; return [[w.x,w.x*tanB],[w.x+w.len*Math.cos(a), w.x*tanB+w.len*Math.sin(a)]]; });
+      const xs = [0, ...sets.flat().map(p=>p[0]), ...wallPts.flat().map(p=>p[0])];
+      const gMin=Math.min(...xs), gMax=Math.max(1,...xs), ground=[[gMin,gMin*tanB],[gMax,gMax*tanB]];
+      const tr = sceneTransform(canvas, [[[0,0]], ground, ...sets, ...wallPts]);
+      const r = canvas.getBoundingClientRect(); ctx.clearRect(0,0,r.width,r.height);
+      drawAxes(ctx,tr);
+      ctx.strokeStyle=cssVar('--outline'); ctx.lineWidth=2; ctx.beginPath();
+      ctx.moveTo(...tr.toPx(...ground[0])); ctx.lineTo(...tr.toPx(...ground[1])); ctx.stroke();
+      ctx.strokeStyle=cssVar('--sec'); ctx.lineWidth=5; ctx.lineCap='round';
+      wallPts.forEach(p=>{ ctx.beginPath(); ctx.moveTo(...tr.toPx(...p[0])); ctx.lineTo(...tr.toPx(...p[1])); ctx.stroke(); });
+      ctx.lineCap='butt';
+      const vMax = Math.max(1e-6, ...ids.map(i=>outs[i].vMax)), pxPerMs = 60/vMax;
+      ids.forEach((i,k)=>{
+        const color=COLORS[i%COLORS.length], s=stateAt(outs[i],t);
+        ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.beginPath();
+        sets[k].forEach((p,j)=>{ const [px,py]=tr.toPx(...p); j===0?ctx.moveTo(px,py):ctx.lineTo(px,py); }); ctx.stroke();
+        const [bx,by]=tr.toPx(s.x,s.y);
+        ctx.fillStyle=color; ctx.beginPath(); ctx.arc(bx,by,7,0,Math.PI*2); ctx.fill();
+        if(env.vectors) drawArrow(ctx,bx,by,s.vx*pxPerMs,-s.vy*pxPerMs,color);
+      });
+      const sb = refStone(pair.ref);
+      if(sb!==null && ids.includes(pair.a) && ids.includes(sb) && pair.a!==sb){      // линия расстояния A–B
+        const A=stateAt(outs[pair.a],t), B=stateAt(outs[sb],t);
+        const [ax,ay]=tr.toPx(A.x,A.y), [bx,by]=tr.toPx(B.x,B.y);
+        ctx.strokeStyle=cssVar('--on-surf-var'); ctx.lineWidth=1; ctx.setLineDash([5,4]);
+        ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle=cssVar('--on-surf'); ctx.font='12px Roboto, sans-serif'; ctx.textAlign='center';
+        ctx.fillText('d = '+Math.hypot(A.x-B.x,A.y-B.y).toFixed(2)+' м', (ax+bx)/2, (ay+by)/2-6);
+      }
+    }
+/*made by @FedorKkudrin*/
+    const player = makePlayer(playback, ()=>Math.max(0,...outs.filter(o=>o.valid).map(o=>o.T)),
+                              t=>{ drawScene(t); updateAtTime(t); });
+    recompute();
+    return { onResize:()=>drawScene(player.state.t), destroy(){ player.pause(); } };
+  }
+});
+
+/* ============================================================
+   СИМУЛЯТОР 2: Свободное падение (несколько тел, вертикальное движение)
+   ============================================================ */
+/*registerSimulator({
+  id:'freefall', title:'Свободное падение',
+  mount({controls, results, playback, canvas, ctx}){
+    const env = { g:10 };
+    const newStone = () => ({ h0:20, v0:0, bounces:0, k:0.7 }); // v0: +вверх / −вниз, 0 — просто падение
+    let stones = [ newStone() ];
+    let outs = [];
+    const LANE = 1.4; // расстояние между "дорожками" камней — чисто для наглядности
+/*made @FedorKkudrin/*
+    // Движение — цепочка вертикальных «полётов» между ударами о землю:
+    // y(τ) = y0 + v·τ − g·τ²/2. После каждого удара скорость умножается на k.
+    function computeStone(s){
+      const g=env.g, k=Math.min(1,Math.max(0,s.k)), N=Math.floor(s.bounces), TMAX=120;
+      const disc = s.v0*s.v0 + 2*g*s.h0;
+      if(!(disc>=0) || s.v0+Math.sqrt(disc) <= 0) return { valid:false, T:0, segs:[] };
+      const segs=[]; let t0=0, y0=s.h0, v=s.v0, contacts=0, reflections=0, hMax=s.h0, firstImpact=null;
+      while(t0 < TMAX && segs.length < 300){
+        const d=v*v+2*g*y0, vi=Math.sqrt(d), dur=(v+vi)/g;
+        segs.push({ t0, y0, v, dur });
+        if(v>0) hMax=Math.max(hMax, y0+v*v/(2*g));
+        if(firstImpact===null) firstImpact=vi;
+        t0+=dur; contacts++;
+        if(contacts > N) break;                 // остановился
+        v=k*vi; y0=0; reflections++;            // упругий отскок
+        if(v < 0.15) break;
+      }
+      return { valid:true, T:t0, segs, hMax, firstImpact, reflections };
+    }
+    function posAt(o,lane,t){
+      let seg=o.segs[0];
+      for(const sg of o.segs){ if(sg.t0<=t) seg=sg; else break; }
+      const tau=Math.min(t-seg.t0, seg.dur);
+      return [lane*LANE, seg.y0+seg.v*tau-0.5*env.g*tau*tau];
+    }
+
+    controls.innerHTML = `
+      <div class="card" style="margin-bottom:16px"><h2>Среда</h2>
+        <div class="field"><label>g (м/с²)</label><input type="number" id="p-g" value="${env.g}" step="0.1"></div>
+        <div class="warn" id="warn"></div></div>
+      <div class="card"><h2>Камни</h2><div id="stone-list"></div><button class="btn-add" id="btn-add">+ Добавить камень</button></div>`;
+    const inG=controls.querySelector('#p-g'), warn=controls.querySelector('#warn'),
+          stoneList=controls.querySelector('#stone-list'), btnAdd=controls.querySelector('#btn-add');
+    inG.oninput=()=>{ env.g=parseFloat(inG.value)||10; recompute(); };
+    btnAdd.onclick=()=>{ stones.push(newStone()); renderStones(); recompute(); };
+
+    function renderStones(){
+      stoneList.innerHTML = stones.map((s,i)=>`
+        <div class="stone" style="--stone-color:${COLORS[i%COLORS.length]}">
+          <div class="stone-head"><span class="dot"></span><span>Камень ${i+1}</span>
+            <button class="icon-btn" data-remove="${i}" ${stones.length<=1?'disabled':''}>✕</button></div>
+          <div class="row2">
+            <div class="field"><label>Высота h₀ (м, можно отрицат.)</label><input type="number" data-i="${i}" data-k="h0" value="${s.h0}" step="0.5"></div>
+            <div class="field"><label>v₀ (м/с, +вверх/−вниз)</label><input type="number" data-i="${i}" data-k="v0" value="${s.v0}" step="0.5"></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label>Отскоков (макс.)</label><input type="number" data-i="${i}" data-k="bounces" value="${s.bounces}" step="1" min="0"></div>
+            <div class="field"><label>Упругость k (0…1)</label><input type="number" data-i="${i}" data-k="k" value="${s.k}" step="0.05" min="0" max="1"></div>
+          </div>
+        </div>`).join('');
+      stoneList.querySelectorAll('input').forEach(inp=>{ inp.oninput=()=>{ stones[+inp.dataset.i][inp.dataset.k]=parseFloat(inp.value)||0; recompute(); }; });
+      stoneList.querySelectorAll('[data-remove]').forEach(b=>{ b.onclick=()=>{ stones.splice(+b.dataset.remove,1); renderStones(); recompute(); }; });
+    }
+    renderStones();
+
+    function recompute(){
+      outs = stones.map(computeStone);
+      warn.textContent = outs.some(o=>!o.valid) ? 'Камень уже ниже поверхности — проверьте h₀.' : '';
+      const row=(l,v)=>`<div class="result-row"><span>${l}</span><span class="v">${v}</span></div>`;
+      results.innerHTML = stones.map((s,i)=>{ const o=outs[i]; if(!o.valid) return '';
+        return `<div class="result-card" style="--stone-color:${COLORS[i%COLORS.length]}">
+          <div style="font-size:13px;font-weight:500;margin-bottom:6px">Камень ${i+1}</div>
+          ${row('Время движения', o.T.toFixed(2)+' с')}${row('Макс. высота', o.hMax.toFixed(2)+' м')}
+          ${row('Отскоков', o.reflections)}${row('Скорость 1-го удара', o.firstImpact.toFixed(2)+' м/с')}</div>`; }).join('') || '<div class="stub">Добавьте камень</div>';
+      player.reset();
+    }
+/*made by @FedorKkudrin*
+    function drawScene(t){
+      const valid = stones.map((s,i)=>i).filter(i=>outs[i].valid);
+      const pts = valid.map(i=>[[i*LANE, outs[i].hMax],[i*LANE,0]]);
+      const tr = sceneTransform(canvas, [[[0,0]], ...pts], undefined, false);
+      const r = canvas.getBoundingClientRect(); ctx.clearRect(0,0,r.width,r.height);
+      drawAxes(ctx,tr);
+      valid.forEach(i=>{
+        const s=stones[i], o=outs[i], color=COLORS[i%COLORS.length];
+        ctx.strokeStyle=color; ctx.lineWidth=2; ctx.setLineDash([3,4]); ctx.beginPath();
+        const [x1,y1]=tr.toPx(i*LANE,o.hMax), [x2,y2]=tr.toPx(i*LANE,0); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.setLineDash([]);
+        const [bx,by]=tr.toPx(...posAt(o,i,t));
+        ctx.fillStyle=color; ctx.beginPath(); ctx.arc(bx,by,7,0,Math.PI*2); ctx.fill();
+      });
+    }
+    const player = makePlayer(playback, ()=>Math.max(0,...outs.filter(o=>o.valid).map(o=>o.T)), drawScene);
+    recompute();
+    return { onResize:()=>drawScene(player.state.t), destroy(){ player.pause(); } };
+  }
+});
+
+/* Точка расширения: registerSimulator({id, title, disabled, mount(){...}}) */
+registerSimulator({ id:'light', title:'Симулятор света', disabled:true, mount(){ return {}; } });
+
+initApp();/*made by @FedorKkudrin*/
+</script>
+</body>
+</html>
